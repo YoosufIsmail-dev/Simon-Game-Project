@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simon Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a12;
+    --panel: #12121e;
+    --border: #1e1e32;
+    --text: #c8c8e0;
+    --dim: #4a4a6a;
+
+    --red-off:    #2a0810;
+    --red-on:     #ff2244;
+    --red-glow:   #ff224480;
+
+    --blue-off:   #040e28;
+    --blue-on:    #1166ff;
+    --blue-glow:  #1166ff80;
+
+    --green-off:  #041408;
+    --green-on:   #22ee55;
+    --green-glow: #22ee5580;
+
+    --yellow-off: #1a1400;
+    --yellow-on:  #ffdd00;
+    --yellow-glow:#ffdd0080;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  /* ── Stars ── */
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 72% 8%,  rgba(255,255,255,.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 55%, rgba(255,255,255,.2)  0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 35%, rgba(255,255,255,.3)  0%, transparent 100%),
+      radial-gradient(1px 1px at 28% 80%, rgba(255,255,255,.2)  0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  65%, rgba(255,255,255,.15) 0%, transparent 100%);
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 1;
+    text-align: center;
+    letter-spacing: .15em;
+  }
+  header h1 {
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #ff2244 0%, #1166ff 40%, #22ee55 70%, #ffdd00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 12px rgba(100,100,255,.4));
+  }
+  header p {
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem;
+    color: var(--dim);
+    letter-spacing: .25em;
+    margin-top: 4px;
+  }
+
+  /* ── Score strip ── */
+  .score-strip {
+    position: relative; z-index: 1;
+    display: flex; gap: 32px;
+    font-family: 'Space Mono', monospace;
+    font-size: .75rem;
+    color: var(--dim);
+    letter-spacing: .1em;
+  }
+  .score-strip span { color: var(--text); font-weight: 700; }
+
+  /* ── Gem board ── */
+  .board {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: clamp(260px, 70vw, 340px);
+  }
+
+  .gem-wrap {
+    position: relative;
+    aspect-ratio: 1;
+    cursor: pointer;
+    border-radius: 18px;
+    overflow: visible;
+  }
+  .gem-wrap:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+
+  .gem {
+    width: 100%; height: 100%;
+    border-radius: 18px;
+    border: 2px solid transparent;
+    transition: box-shadow .08s, filter .08s, border-color .08s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Facet shine */
+  .gem::before {
+    content: '';
+    position: absolute;
+    top: 6%; left: 8%; width: 42%; height: 38%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.18);
+    pointer-events: none;
+  }
+  .gem::after {
+    content: '';
+    position: absolute;
+    bottom: 10%; right: 10%; width: 22%; height: 22%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    pointer-events: none;
+  }
+
+  /* Colors OFF */
+  .gem.red    { background: radial-gradient(circle at 35% 30%, #3a0a14, var(--red-off));    border-color: #3a0a18; }
+  .gem.blue   { background: radial-gradient(circle at 35% 30%, #061230, var(--blue-off));   border-color: #061236; }
+  .gem.green  { background: radial-gradient(circle at 35% 30%, #061a0a, var(--green-off));  border-color: #061a0e; }
+  .gem.yellow { background: radial-gradient(circle at 35% 30%, #201800, var(--yellow-off)); border-color: #201804; }
+
+  /* Colors ON */
+  .gem.red.lit    { background: radial-gradient(circle at 35% 30%, #ff6688, var(--red-on));    border-color: var(--red-on);    box-shadow: 0 0 18px 6px var(--red-glow),    0 0 40px 10px var(--red-glow),    inset 0 0 20px rgba(255,34,68,.35); }
+  .gem.blue.lit   { background: radial-gradient(circle at 35% 30%, #44aaff, var(--blue-on));   border-color: var(--blue-on);   box-shadow: 0 0 18px 6px var(--blue-glow),   0 0 40px 10px var(--blue-glow),   inset 0 0 20px rgba(17,102,255,.35); }
+  .gem.green.lit  { background: radial-gradient(circle at 35% 30%, #88ffaa, var(--green-on));  border-color: var(--green-on);  box-shadow: 0 0 18px 6px var(--green-glow),  0 0 40px 10px var(--green-glow),  inset 0 0 20px rgba(34,238,85,.35); }
+  .gem.yellow.lit { background: radial-gradient(circle at 35% 30%, #ffee88, var(--yellow-on)); border-color: var(--yellow-on); box-shadow: 0 0 18px 6px var(--yellow-glow), 0 0 40px 10px var(--yellow-glow), inset 0 0 20px rgba(255,221,0,.35); }
+
+  .gem-wrap.disabled { cursor: default; pointer-events: none; }
+  .gem-wrap:not(.disabled):hover .gem { filter: brightness(1.3); }
+  .gem-wrap:not(.disabled):active .gem { filter: brightness(1.6); }
+
+  /* ── Status bar ── */
+  .status {
+    position: relative; z-index: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: .75rem;
+    color: var(--dim);
+    letter-spacing: .12em;
+    height: 18px;
+    text-align: center;
+    transition: color .2s;
+  }
+  .status.alert { color: #ff2244; }
+  .status.good  { color: #22ee55; }
+
+  /* ── Start button ── */
+  .btn-start {
+    position: relative; z-index: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: .8rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 28px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, box-shadow .2s;
+  }
+  .btn-start:hover {
+    border-color: #1166ff;
+    color: #fff;
+    box-shadow: 0 0 12px #1166ff60;
+  }
+
+  /* ── Lose flash overlay ── */
+  .flash {
+    position: fixed; inset: 0; z-index: 99;
+    background: rgba(255,34,68,.18);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .flash.show { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gem, .gem.lit, .status { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars"></div>
+<div class="flash" id="flash"></div>
+
+<header>
+  <h1>Simon Game</h1>
+  <p>memory sequence game</p>
+</header>
+
+<div class="score-strip">
+  <div>ROUND <span id="round">—</span></div>
+  <div>BEST <span id="best">0</span></div>
+</div>
+
+<div class="board" id="board" role="group" aria-label="Simon gems">
+  <div class="gem-wrap disabled" id="gem-red"    tabindex="0" role="button" aria-label="Red gem">
+    <div class="gem red"   ></div>
+  </div>
+  <div class="gem-wrap disabled" id="gem-blue"   tabindex="0" role="button" aria-label="Blue gem">
+    <div class="gem blue"  ></div>
+  </div>
+  <div class="gem-wrap disabled" id="gem-green"  tabindex="0" role="button" aria-label="Green gem">
+    <div class="gem green" ></div>
+  </div>
+  <div class="gem-wrap disabled" id="gem-yellow" tabindex="0" role="button" aria-label="Yellow gem">
+    <div class="gem yellow"></div>
+  </div>
+</div>
+
+<div class="status" id="status">press start</div>
+<button class="btn-start" id="startBtn">Start</button>
+
+<script>
+  const GEMS = ['red','blue','green','yellow'];
+  const NOTES = { red: 261.6, blue: 329.6, green: 392, yellow: 523.2 };
+
+  let sequence = [], playerIndex = 0, round = 0, best = 0;
+  let busy = false;
+  let ctx = null;
+
+  const $ = id => document.getElementById(id);
+  const gemWrap  = c => $(`gem-${c}`);
+  const gemInner = c => gemWrap(c).querySelector('.gem');
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+
+  function playTone(color, dur = 220) {
+    try {
+      const ac = getCtx();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type = 'sine';
+      o.frequency.value = NOTES[color];
+      g.gain.setValueAtTime(.22, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ac.currentTime + dur/1000);
+      o.start(); o.stop(ac.currentTime + dur/1000);
+    } catch(e) {}
+  }
+
+  function playError() {
+    try {
+      const ac = getCtx();
+      [180, 140].forEach((f, i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.type = 'sawtooth'; o.frequency.value = f;
+        const t = ac.currentTime + i * .18;
+        g.gain.setValueAtTime(.18, t);
+        g.gain.exponentialRampToValueAtTime(.001, t + .25);
+        o.start(t); o.stop(t + .25);
+      });
+    } catch(e) {}
+  }
+
+  function litUp(color, dur = 400) {
+    return new Promise(res => {
+      const gem = gemInner(color);
+      gem.classList.add('lit');
+      playTone(color, dur);
+      setTimeout(() => { gem.classList.remove('lit'); res(); }, dur);
+    });
+  }
+
+  function setStatus(msg, cls = '') {
+    const el = $('status');
+    el.textContent = msg;
+    el.className = 'status ' + cls;
+  }
+
+  function setRound(n) {
+    round = n;
+    $('round').textContent = n > 0 ? n : '—';
+  }
+
+  function setEnabled(on) {
+    GEMS.forEach(c => {
+      const w = gemWrap(c);
+      if (on) w.classList.remove('disabled');
+      else    w.classList.add('disabled');
+    });
+  }
+
+  async function playSequence() {
+    busy = true;
+    setEnabled(false);
+    setStatus('watch…');
+
+    // Speed: faster after round 5
+    const onDur  = round > 9 ? 220 : round > 5 ? 320 : 420;
+    const offGap = round > 9 ? 60  : round > 5 ? 80  : 120;
+
+    for (const color of sequence) {
+      await litUp(color, onDur);
+      await pause(offGap);
+    }
+
+    setStatus('your turn');
+    setEnabled(true);
+    playerIndex = 0;
+    busy = false;
+  }
+
+  function pause(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function addAndPlay() {
+    const next = GEMS[Math.floor(Math.random() * 4)];
+    sequence.push(next);
+    setRound(sequence.length);
+    await pause(600);
+    await playSequence();
+  }
+
+  async function handleGem(color) {
+    if (busy) return;
+    await litUp(color, 280);
+    playTone(color);
+
+    if (color !== sequence[playerIndex]) {
+      // Wrong!
+      playError();
+      flashRed();
+      if (round - 1 > best) { best = round - 1; $('best').textContent = best; }
+      setStatus(`wrong! reached round ${round}`, 'alert');
+      setEnabled(false);
+      setRound(0);
+      sequence = [];
+      $('startBtn').style.display = '';
+      return;
+    }
+
+    playerIndex++;
+    if (playerIndex === sequence.length) {
+      // Completed the sequence
+      setStatus('nice!', 'good');
+      setEnabled(false);
+      await pause(700);
+      addAndPlay();
+    }
+  }
+
+  function flashRed() {
+    const f = $('flash');
+    f.classList.add('show');
+    setTimeout(() => f.classList.remove('show'), 350);
+  }
+
+  // Wire gem clicks
+  GEMS.forEach(color => {
+    const w = gemWrap(color);
+    w.addEventListener('click', () => handleGem(color));
+    w.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleGem(color); }
+    });
+  });
+
+  // Start button
+  $('startBtn').addEventListener('click', async () => {
+    $('startBtn').style.display = 'none';
+    sequence = [];
+    setRound(0);
+    await pause(300);
+    addAndPlay();
+  });
+</script>
+</body>
+</html>
