@@ -68,26 +68,26 @@ git clone https://github.com/yourusername/simon-gems.git
 ### Open the Project
 
 ```bash
-cd simon-gems
+cd simon-game
 ```
 
 Simply open:
 
 ```bash
-simon-gems.html
+simon-game.html
 
 ## 🎨 Game Features Breakdown
 
-### 💎 Gem Board
+### 💎 Game Board
 
-Four interactive gems:
+Four interactive games:
 
 * 🔴 Red
 * 🔵 Blue
 * 🟢 Green
 * 🟡 Yellow
 
-Each gem has:
+Each game has:
 
 * Unique glow effect
 * Individual sound frequency
@@ -159,4 +159,4 @@ If you like this project, consider giving it a **star ⭐** on GitHub.
 
 ---
 
-### 💎 Challenge Your Memory. Beat Your Best Score. Become a Simon Gems Master! 🚀🧠✨
+### 💎 Challenge Your Memory. Beat Your Best Score. Become a Simon Games Master! 🚀🧠✨
